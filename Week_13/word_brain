@@ -1,0 +1,182 @@
+#!/usr/bin/python
+# AUTHOR Abhishek Shanbhag anshan@bu.edu
+# AUTHOR hari chhari@bu.edu
+# AUTHOR ameya apastamb ameyama@bu.edu
+# AUTHOR Shreyas joshi svmjoshi@bu.edu
+import sys
+import collections
+import numpy as np
+import itertools
+from itertools import *
+import json
+from copy import deepcopy as dc
+
+
+class TrieNode:
+    def __init__(self, pt, val):
+        self.pt = pt
+        self.ch = [None] * 26
+        self.isWord = False
+        self.val = val
+        if pt is not None:
+            pt.ch[ord(val) - 97] = self
+
+
+def MakeTrie(dictfile):
+    dict = open(dictfile)
+    root = TrieNode(None, '')
+    for word in dict:
+        curNode = root
+        for letter in word.lower():
+            if 97 <= ord(letter) < 123:
+                nextNode = curNode.ch[ord(letter) - 97]
+                if nextNode is None:
+                    nextNode = TrieNode(curNode, letter)
+                curNode = nextNode
+        curNode.isWord = True
+    return root
+
+
+class BN:
+    def __init__(self, val, cv, grd_s, loc, pth, lv):
+        self.cv = cv + val
+        self.grd_s = grd_s
+        self.loc = loc
+        self.pth = pth
+        self.pth.append(loc)
+        self.lv = lv
+
+
+def word_not_in_list(w, w_l):
+    for i in w_l:
+        if(w == i[0]):
+            return False
+    return True
+
+
+def MakeBogTrie(root, w_l, d):
+    if(root.lv != 0):
+        cl = len(root.grd_s)
+        rw = len(root.grd_s)
+        combs = [(1, 0), (1, -1), (0, -1), (-1, -1)]
+        combs_ext = [(-1, 0), (-1, 1), (0, 1), (1, 1)]
+        combs.extend(combs_ext)
+        for dx, dy in combs:
+            nx, ny = root.loc[0] + dx, root.loc[1] + dy
+            if 0 <= nx < cl and 0 <= ny < rw:
+                nlet = root.grd_s[nx][ny]
+                if(nlet != '$'):
+                    ncv = root.cv
+                    ngrd_s = dc(root.grd_s)
+                    ngrd_s[root.loc[0]][root.loc[1]] = '$'
+                    nloc = [nx, ny]
+                    npth = dc(root.pth)
+                    nlv = root.lv - 1
+                    nwnd = d.ch[ord(nlet) - 97]
+                    if(nwnd is not None):
+                        nnd = BN(nlet, ncv, ngrd_s, nloc, npth, nlv)
+                        MakeBogTrie(nnd, w_l, nwnd)
+    else:
+        w = root.cv
+        if d.isWord:
+            w_l.append([w, root.pth])
+
+
+def clean_and_push_grid(grd, pth):
+    for x, y in pth:
+        grd[x][y] = '$'
+    for i in range(len(grd)):
+        for j in range(len(grd)-1, -1, -1):
+            if(grd[i][j] != '$'):
+                c = j
+                while(c+1 < len(grd) and grd[i][c+1] == '$'):
+                    grd[i][c+1] = grd[i][c]
+                    grd[i][c] = '$'
+                    c += 1
+    return grd
+
+
+def not_in_sol(tsol, sol):
+    for s in sol:
+        if(''.join(sorted(s)) == ''.join(sorted(tsol))):
+            return False
+    return True
+
+
+def solve_bog(grd_s, w_lns, sol, tsol, tpl, w_tr, lv):
+    jsol = ''.join(tsol)
+    if(len(jsol) == len(grd_s)*len(grd_s)):
+        if(''.join(sorted(jsol)) == tpl) and not_in_sol(tsol, sol):
+            sol.append(dc(tsol))
+    else:
+        if len(tsol) <= lv:
+            tsol.append('')
+        for i in range(len(grd_s)):
+            for j in range(len(grd_s)):
+                lt = grd_s[i][j]
+                if(lt != '$'):
+                    r = BN(lt, '', dc(grd_s), [i, j], [], w_lns[lv] - 1)
+                    w_l = []
+                    nwnd = w_tr.ch[ord(lt) - 97]
+                    if(nwnd is not None):
+                        MakeBogTrie(r, w_l, nwnd)
+                        for w in w_l:
+                            tsol[lv] = w[0]
+                            ngrd = clean_and_push_grid(dc(grd_s), w[1])
+                            solve_bog(ngrd, w_lns, sol, dc(tsol), tpl, w_tr, lv+1)
+
+
+
+def write_to_file(sol):
+    for i in sorted(sol):
+        s = ''
+        for word in i:
+            s += word + ' '
+        print(s[:len(s) - 1])
+    print('.')
+
+
+def input_values():
+    input_grid = input('Enter grid as a space separated string of columns: ')
+    g = []
+    while(len(input_grid) > 4):
+        g.append(input_grid[:4])
+        input_grid = input_grid[4:]
+    g.append(input_grid)
+    if len(input_grid) != 0:
+        x = {}
+        x.update({'grid': g})
+        x.update({'size': len(g)})
+        x.update({'lengths': []})
+        for i in (input('Enter lengths of words as space separated numbers: ')).split(' '):
+            x['lengths'].append(int(i))
+        return x
+    else:
+        return None
+
+
+def main():
+    d_s = MakeTrie(sys.argv[1])
+    d_l = MakeTrie(sys.argv[2])
+    x = input_values()
+    while(x):
+        # ipd = json.JSONDecoder().decode(x)
+        ipd = x
+        k = ipd['grid']
+        lbk = ''.join(sorted(''.join(k)))
+        grd_s = []
+        for i in range(len(k)):
+            grd_s.append([])
+            for j in k[i]:
+                grd_s[i].append(j)
+        w_lns = ipd['lengths']
+        sol = []
+        size = ipd['size']
+        solve_bog(dc(grd_s), dc(w_lns), sol, [], lbk, d_s, 0)
+        write_to_file(sol)
+        sol = []
+        solve_bog(dc(grd_s), dc(w_lns), sol, [], lbk, d_l, 0)
+        write_to_file(sol)
+        x = input_values()
+if __name__ == '__main__':
+    main()

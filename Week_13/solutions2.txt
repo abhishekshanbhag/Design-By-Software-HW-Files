@@ -1,0 +1,7 @@
+['w13_wordbrainsolver.py', 'a', 'b', 'w', 's']
+w13_wordbrainsolver.py
+a
+b
+w
+s
+5

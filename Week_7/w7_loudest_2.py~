@@ -1,0 +1,83 @@
+import scipy.io.wavfile as wavfile
+import numpy as np
+#import matplotlib.pyplot as pyplot
+
+
+def integral(signal, L, H):
+	integral = np.sum(np.square(np.abs(signal[L:H+1])))
+	return integral
+
+def filter(signal, L, H, frame_rate):
+	N = len(signal)
+	new_sf = np.zeros(signal.shape, dtype=complex)
+	new_sf[L:H+1] = signal[L:H+1]
+	new_sf[N-H:N-L+1] = signal[N-H:N-L+1]
+	return new_sf
+
+def loudest(music, frame_rate, bandwidth):
+	N = len(music)
+	#print(N)
+	sf = np.fft.fft(music)
+	sf = np.fft.fftshift(sf)
+	#print(sf[int(N/2) - 2:int(N/2) + 3])
+	#print(sf[0])
+	#print(sf[1])
+	#print(sf[N-1])
+	t = np.linspace(0,N-1,N)
+	pyplot.plot(t,music)
+	pyplot.show()
+	pyplot.plot(t,np.abs(sf))
+	pyplot.show()
+	maxl = 0
+	maxh = 0
+	max_val = 0
+	L = (int(frame_rate/2)*int(N/frame_rate))
+	H = (int(frame_rate/2) + bandwidth)*int(N/frame_rate)
+	complete_flag = False
+	while(complete_flag == False):
+		x = integral(sf, L, H)
+		if(x > max_val):
+			max_val = x
+			maxl = L
+			maxh = H
+		L += 1
+		H += 1
+		if(H > N-1):
+			complete_flag = True
+	#print("L = " + str(maxl))
+	#print("H = " + str(maxh))
+	#print("Max integral = " + str(max_val))
+	new_sf = filter(sf, maxl, maxh, frame_rate)
+	#print(new_sf[maxl])
+	#print(new_sf[N-maxl])
+	pyplot.plot(t,np.imag(new_sf))
+	pyplot.show()
+	#print(new_sf[maxl:maxh+1])
+	#print(new_sf[N-maxh:N-maxl+1])
+	#print("Len of New Sig = " + str(len(new_sf)))
+	output = np.fft.ifftshift(new_sf)
+	#print(output[maxl:maxh+1])
+	#print(output[N-maxh:N-maxl+1])
+	#print(output[1])
+	#print(output[N-1])
+	pyplot.plot(t,np.abs(output))
+	pyplot.show()
+	output = np.fft.ifft(output)
+	pyplot.plot(t,np.real(output))
+	pyplot.show()
+	#print(output[int(N/2) - 2:int(N/2) + 3])
+	#print(output[0])
+	#print(output[1])
+	#print(output[N-1])
+	#wavfile.write("Trial.wav", 44100, np.real(output).astype(np.float16))
+	#print(np.array_equal(new_sf[0:220500],np.conj(new_sf[220501:N-1])))
+	return maxl, maxh, output
+
+def main():
+	#frame_rate, music = wavfile.read("bach10sec.wav")
+	#print(music.shape)
+	#loudest(music[:,0], frame_rate, 100)
+	pass
+
+if __name__ == '__main__':
+	main()

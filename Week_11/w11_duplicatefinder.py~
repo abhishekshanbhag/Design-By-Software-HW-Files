@@ -1,0 +1,8 @@
+from os import listdir
+import numpy as np
+import re
+import hashlib
+from skimage.io import imread
+
+def show_image_valeus(im):
+    print(im)

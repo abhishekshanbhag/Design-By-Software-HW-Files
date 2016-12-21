@@ -1,0 +1,8 @@
+#!/usr/bin/env python
+
+import sys
+
+print("argc is",len(sys.argv))
+print(sys.argv)
+for i,token in enumerate(sys.argv):
+    print('argv of',i,'is',token)
